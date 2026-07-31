@@ -7493,6 +7493,13 @@ class AIAgent:
                 finish_task_run(**task_context, error=exc)
             raise
         finally:
+            try:
+                if relay_turn is not None:
+                    relay_runtime.SESSION_COORDINATOR.end_turn(
+                        relay_turn,
+                        outcome=relay_outcome,
+                    )
+            finally:
                 try:
                     if relay_lease is not None:
                         relay_runtime.SESSION_COORDINATOR.release_conversation(
@@ -7508,9 +7515,6 @@ class AIAgent:
                     if getattr(self, "_relay_pending_turn_id", None) == relay_turn_id:
                         self._relay_pending_turn_id = None
                     if acct_token is not None:
-                        reset_accounting_context(acct_token)
-                    if token is not None:
-                        reset_conversation_context(token)
                         reset_accounting_context(acct_token)
                     if token is not None:
                         reset_conversation_context(token)
