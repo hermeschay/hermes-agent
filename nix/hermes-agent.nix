@@ -9,6 +9,7 @@
   stdenv,
   makeWrapper,
   callPackage,
+  symlinkJoin,
   python312,
   nodejs_26,
   electron,
@@ -39,7 +40,16 @@
   extraDependencyGroups ? [ ],
 }:
 let
-  nodejs = nodejs_26;
+  npm12 = callPackage ./npm12.nix { };
+  nodejs = symlinkJoin {
+    name = "nodejs-26-npm-12";
+    paths = [
+      npm12
+      nodejs_26
+    ];
+    meta = nodejs_26.meta;
+  };
+
   mkHermesVenv =
     extraDependencyGroups:
     callPackage ./python.nix {
