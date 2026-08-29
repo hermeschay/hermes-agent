@@ -19,8 +19,8 @@ from plugins.web.parallel.provider import (
 @pytest.mark.parametrize(
     ("configured", "expected"),
     [
-        (None, "advanced"),
-        ("not-a-mode", "advanced"),
+        (None, "turbo"),
+        ("not-a-mode", "turbo"),
         ("agentic", "advanced"),
         ("one-shot", "basic"),
         ("fast", "basic"),
@@ -41,6 +41,32 @@ def test_search_mode_preserves_legacy_semantics_and_explicit_v1_modes(
         monkeypatch.setenv("PARALLEL_SEARCH_MODE", configured)
 
     assert _resolve_search_mode() == expected
+
+
+@pytest.mark.parametrize("configured", ["turbo", "fast", "basic", "advanced"])
+def test_search_mode_reads_v1_mode_from_web_config_when_env_is_unset(
+    monkeypatch: pytest.MonkeyPatch,
+    configured: str,
+) -> None:
+    monkeypatch.delenv("PARALLEL_SEARCH_MODE", raising=False)
+
+    with patch(
+        "hermes_cli.config.load_config_readonly",
+        return_value={"web": {"parallel_search_mode": configured}},
+    ):
+        assert _resolve_search_mode() == configured
+
+
+def test_search_mode_legacy_env_overrides_web_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PARALLEL_SEARCH_MODE", "agentic")
+
+    with patch(
+        "hermes_cli.config.load_config_readonly",
+        return_value={"web": {"parallel_search_mode": "turbo"}},
+    ):
+        assert _resolve_search_mode() == "advanced"
 
 
 def test_search_uses_v1_client_and_preserves_normalized_result_shape(
