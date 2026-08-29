@@ -17,7 +17,7 @@ Config keys this provider responds to::
       search_backend: "parallel"      # explicit per-capability
       extract_backend: "parallel"     # explicit per-capability
       backend: "parallel"             # shared fallback
-      parallel_search_mode: "turbo"   # turbo, fast, basic, or advanced
+      parallel_search_mode: "fast"    # turbo, fast, basic, or advanced
 
 Env vars::
 
@@ -159,13 +159,13 @@ def _resolve_search_mode() -> str:
             from hermes_cli.config import load_config_readonly
 
             web_config = load_config_readonly().get("web") or {}
-            mode = web_config.get("parallel_search_mode", "turbo")
+            mode = web_config.get("parallel_search_mode", "fast")
         except Exception as exc:  # noqa: BLE001 — config layer is optional
             logger.debug("Could not load Parallel search mode config: %s", exc)
-            mode = "turbo"
+            mode = "fast"
 
     mode = str(mode).lower().strip()
-    return mode if mode in _V1_SEARCH_MODES else "turbo"
+    return mode if mode in _V1_SEARCH_MODES else "fast"
 
 
 class ParallelWebSearchProvider(WebSearchProvider):
