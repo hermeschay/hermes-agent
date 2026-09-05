@@ -69,6 +69,35 @@ def test_search_mode_legacy_env_overrides_web_config(
         assert _resolve_search_mode() == "advanced"
 
 
+@pytest.mark.parametrize("override", ["", "   ", "invalid-mode"])
+def test_invalid_env_override_uses_fallback_not_valid_yaml(
+    monkeypatch: pytest.MonkeyPatch,
+    override: str,
+) -> None:
+    monkeypatch.setenv("PARALLEL_SEARCH_MODE", override)
+    with patch(
+        "hermes_cli.config.load_config_readonly",
+        return_value={"web": {"parallel_search_mode": "advanced"}},
+    ):
+        assert _resolve_search_mode() == "fast"
+
+
+def test_keyless_search_bypasses_mode_configuration() -> None:
+    expected = {"success": True, "data": {"web": []}}
+    with (
+        patch("tools.interrupt.is_interrupted", return_value=False),
+        patch("agent.web_search_provider.get_provider_env", return_value=""),
+        patch("plugins.web.keyless_mcp.use_keyless", return_value=True),
+        patch("plugins.web.keyless_mcp.search_with_failover", return_value=expected) as search,
+        patch("plugins.web.parallel.provider._resolve_search_mode") as resolve_mode,
+        patch("plugins.web.parallel.provider._get_sync_client") as sdk,
+    ):
+        assert ParallelWebSearchProvider().search("test query", limit=3) == expected
+    search.assert_called_once_with("parallel", "test query", 3)
+    resolve_mode.assert_not_called()
+    sdk.assert_not_called()
+
+
 @pytest.mark.parametrize("configured", ["turbo", "fast", "basic", "advanced"])
 def test_search_forwards_each_configured_v1_mode(
     monkeypatch: pytest.MonkeyPatch,
